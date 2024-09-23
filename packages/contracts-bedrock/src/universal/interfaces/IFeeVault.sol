@@ -20,6 +20,7 @@ interface IFeeVault {
     function totalProcessed() external view returns (uint256);
     function withdraw() external;
     function withdrawalNetwork() external view returns (WithdrawalNetwork network_);
+    function config() external view returns (address recipient_, uint256 amount_, WithdrawalNetwork network_);
 
     function __constructor__() external;
 }
