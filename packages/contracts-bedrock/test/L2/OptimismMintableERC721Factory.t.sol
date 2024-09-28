@@ -4,7 +4,7 @@ pragma solidity 0.8.15;
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { Bridge_Initializer } from "test/setup/Bridge_Initializer.sol";
 import { OptimismMintableERC721 } from "src/universal/OptimismMintableERC721.sol";
-import { OptimismMintableERC721Factory } from "src/universal/OptimismMintableERC721Factory.sol";
+import { OptimismMintableERC721Factory } from "src/L2/OptimismMintableERC721Factory.sol";
 
 contract OptimismMintableERC721Factory_Test is Bridge_Initializer {
     OptimismMintableERC721Factory internal factory;
@@ -15,7 +15,8 @@ contract OptimismMintableERC721Factory_Test is Bridge_Initializer {
         super.setUp();
 
         // Set up the token pair.
-        factory = new OptimismMintableERC721Factory(address(l2ERC721Bridge), 1);
+        // TODO: is this not deployed as part of Setup?
+        factory = new OptimismMintableERC721Factory();
 
         // Label the addresses for nice traces.
         vm.label(address(factory), "OptimismMintableERC721Factory");

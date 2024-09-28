@@ -632,7 +632,8 @@ contract OPContractsManager is ISemver, Initializable {
             disputeGameFactory: address(_output.disputeGameFactoryProxy),
             optimismPortal: address(_output.optimismPortalProxy),
             optimismMintableERC20Factory: address(_output.optimismMintableERC20FactoryProxy),
-            gasPayingToken: Constants.ETHER
+            gasPayingToken: Constants.ETHER,
+            superchainConfig: address(superchainConfig) // TODO: sanity check this
         });
 
         assertValidContractAddress(opChainAddrs_.l1CrossDomainMessenger);
