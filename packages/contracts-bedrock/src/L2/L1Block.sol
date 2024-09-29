@@ -5,7 +5,7 @@ import { ISemver } from "src/universal/interfaces/ISemver.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { StaticConfig, ConfigType } from "src/libraries/StaticConfig.sol";
 import { GasPayingToken, IGasToken } from "src/libraries/GasPayingToken.sol";
-import { IFeeVault } from "src/universal/interfaces/IFeeVault.sol";
+import { IFeeVault } from "src/L2/interfaces/IFeeVault.sol";
 import { ICrossDomainMessenger } from "src/universal/interfaces/ICrossDomainMessenger.sol";
 import { IStandardBridge } from "src/universal/interfaces/IStandardBridge.sol";
 import { IERC721Bridge } from "src/universal/interfaces/IERC721Bridge.sol";

@@ -9,11 +9,10 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @title OptimismMintableERC721Factory
 /// @notice Factory contract for creating OptimismMintableERC721 contracts.
-/// .       This contract could in theory live on both L1 and L2 but it is not widely
-/// .       used and is therefore set up to work on L2. This could be abstracted in the
-/// .       future to be deployable on L1 as well.
+///         This contract could in theory live on both L1 and L2 but it is not widely
+///         used and is therefore set up to work on L2. This could be abstracted in the
+///         future to be deployable on L1 as well.
 contract OptimismMintableERC721Factory is ISemver {
-    /// TODO: check storage diff
     /// @notice Tracks addresses created by this factory.
     mapping(address => bool) public isOptimismMintableERC721;
 

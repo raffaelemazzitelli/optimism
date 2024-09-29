@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { ConfigType } from "src/libraries/StaticConfig.sol";
-import { IFeeVault } from "src/universal/interfaces/IFeeVault.sol";
+import { IFeeVault } from "src/L2/interfaces/IFeeVault.sol";
 
 interface IL1Block {
     error NotDepositor();

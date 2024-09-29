@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { RLPWriter } from "src/libraries/rlp/RLPWriter.sol";
-import { IFeeVault } from "src/universal/interfaces/IFeeVault.sol";
+import { IFeeVault } from "src/L2/interfaces/IFeeVault.sol";
 
 /// @title Encoding
 /// @notice Encoding handles Optimism's various different encoding schemes.

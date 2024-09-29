@@ -4,7 +4,7 @@ pragma solidity 0.8.15;
 // Contracts
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { FeeVault } from "src/universal/FeeVault.sol";
+import { IFeeVault } from "src/L2/interfaces/IFeeVault.sol";
 import { StaticConfig, ConfigType } from "src/libraries/StaticConfig.sol";
 
 // Libraries
@@ -459,22 +459,22 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
     }
 
     /// @notice
-    function setBaseFeeVaultConfig(address _recipient, uint256 _min, FeeVault.WithdrawalNetwork _network) external onlyOwner {
+    function setBaseFeeVaultConfig(address _recipient, uint256 _min, IFeeVault.WithdrawalNetwork _network) external onlyOwner {
         _setFeeVaultConfig(ConfigType.SET_BASE_FEE_VAULT_CONFIG, _recipient, _min, _network);
     }
 
     /// @notice
-    function setL1FeeVaultConfig(address _recipient, uint256 _min, FeeVault.WithdrawalNetwork _network) external onlyOwner {
+    function setL1FeeVaultConfig(address _recipient, uint256 _min, IFeeVault.WithdrawalNetwork _network) external onlyOwner {
         _setFeeVaultConfig(ConfigType.SET_L1_FEE_VAULT_CONFIG, _recipient, _min, _network);
     }
 
     /// @notice
-    function setSequencerFeeVaultConfig(address _recipient, uint256 _min, FeeVault.WithdrawalNetwork _network) external onlyOwner {
+    function setSequencerFeeVaultConfig(address _recipient, uint256 _min, IFeeVault.WithdrawalNetwork _network) external onlyOwner {
         _setFeeVaultConfig(ConfigType.SET_SEQUENCER_FEE_VAULT_CONFIG, _recipient, _min, _network);
     }
 
     /// @notice
-    function _setFeeVaultConfig(ConfigType _type, address _recipient, uint256 _min, FeeVault.WithdrawalNetwork _network) internal {
+    function _setFeeVaultConfig(ConfigType _type, address _recipient, uint256 _min, IFeeVault.WithdrawalNetwork _network) internal {
         IOptimismPortal(payable(optimismPortal())).setConfig({
             _type: _type,
             _value: StaticConfig.encodeSetFeeVaultConfig(_recipient, _min, _network)
