@@ -40,9 +40,12 @@ contract L2ERC721Bridge is ERC721Bridge, ISemver {
     /// TODO: this should not be initializable, this should have messenger be abstract in the base
     ///       only the L1 contract should be initializable
     function initialize() public initializer {
-        __ERC721Bridge_init({
-            _messenger: ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER)
-        });
+        __ERC721Bridge_init();
+    }
+
+    /// @notice
+    function messenger() public override view returns (ICrossDomainMessenger) {
+        return ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
     }
 
     /// @notice
@@ -130,7 +133,7 @@ contract L2ERC721Bridge is ERC721Bridge, ISemver {
 
         // Send message to L1 bridge
         // slither-disable-next-line reentrancy-events
-        messenger.sendMessage({ _target: address(otherBridge()), _message: message, _minGasLimit: _minGasLimit });
+        messenger().sendMessage({ _target: address(otherBridge()), _message: message, _minGasLimit: _minGasLimit });
 
         // slither-disable-next-line reentrancy-events
         emit ERC721BridgeInitiated(_localToken, remoteToken, _from, _to, _tokenId, _extraData);
