@@ -1052,7 +1052,7 @@ contract Deploy is Deployer {
         _upgradeAndCallViaSafe({
             _proxy: superchainConfigProxy,
             _implementation: superchainConfig,
-            _innerCallData: abi.encodeCall(ISuperchainConfig.initialize, (cfg.superchainConfigGuardian(), false))
+            _innerCallData: abi.encodeCall(ISuperchainConfig.initialize, (cfg.superchainConfigGuardian(), cfg.superchainConfigGuardian(), false))
         });
 
         ChainAssertions.checkSuperchainConfig({ _contracts: _proxiesUnstrict(), _cfg: cfg, _isPaused: false });
@@ -1209,7 +1209,8 @@ contract Deploy is Deployer {
                         disputeGameFactory: mustGetAddress("DisputeGameFactoryProxy"),
                         optimismPortal: mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
-                        gasPayingToken: customGasTokenAddress
+                        gasPayingToken: customGasTokenAddress,
+                        superchainConfig: mustGetAddress("SuperchainConfigProxy")
                     })
                 )
             )

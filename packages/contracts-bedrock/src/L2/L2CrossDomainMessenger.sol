@@ -27,7 +27,7 @@ contract L2CrossDomainMessenger is CrossDomainMessenger, ISemver {
 
     /// @notice Constructs the L2CrossDomainMessenger contract.
     constructor() CrossDomainMessenger() {
-        initialize();
+        _disableInitializers();
     }
 
     /// @notice Initializer.

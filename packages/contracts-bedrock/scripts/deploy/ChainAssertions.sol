@@ -106,18 +106,18 @@ library ChainAssertions {
             require(config.optimismPortal() == _contracts.OptimismPortal);
             require(config.optimismMintableERC20Factory() == _contracts.OptimismMintableERC20Factory);
         } else {
-            require(config.owner() == address(0xdead));
+            require(config.owner() == address(0));
             require(config.overhead() == 0);
-            require(config.scalar() == uint256(0x01) << 248); // version 1
+            require(config.scalar() == 0);
             require(config.basefeeScalar() == 0);
             require(config.blobbasefeeScalar() == 0);
             require(config.batcherHash() == bytes32(0));
-            require(config.gasLimit() == 1);
+            require(config.gasLimit() == 0);
             require(config.unsafeBlockSigner() == address(0));
             // Check _config
-            require(resourceConfig.maxResourceLimit == 1);
-            require(resourceConfig.elasticityMultiplier == 1);
-            require(resourceConfig.baseFeeMaxChangeDenominator == 2);
+            require(resourceConfig.maxResourceLimit == 0);
+            require(resourceConfig.elasticityMultiplier == 0);
+            require(resourceConfig.baseFeeMaxChangeDenominator == 0);
             require(resourceConfig.systemTxMaxGas == 0);
             require(resourceConfig.minimumBaseFee == 0);
             require(resourceConfig.maximumBaseFee == 0);
@@ -443,9 +443,10 @@ library ChainAssertions {
     /// @dev Asserts that for a given contract the value of a storage slot at an offset is 1.
     function assertSlotValueIsOne(address _contractAddress, uint256 _slot, uint256 _offset) internal view {
         bytes32 slotVal = vm.load(_contractAddress, bytes32(_slot));
+        uint8 val = uint8((uint256(slotVal) >> (_offset * 8)) & 0xFF);
         require(
-            uint8((uint256(slotVal) >> (_offset * 8)) & 0xFF) == uint8(1),
-            "Storage value is not 1 at the given slot and offset"
+            val == uint8(1) || val == uint8(0xff),
+            "Storage value is not 1 or 0xff at the given slot and offset"
         );
     }
 }
