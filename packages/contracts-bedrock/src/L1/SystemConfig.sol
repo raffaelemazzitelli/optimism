@@ -452,6 +452,9 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
 
     /// @notice
     function _setFeeVaultConfig(ConfigType _type, address _recipient, uint256 _min, IFeeVault.WithdrawalNetwork _network) internal {
+        // TODO: better revert, UnsafeCast
+        if (_min > type(uint88).max) revert();
+
         IOptimismPortal(payable(optimismPortal())).setConfig({
             _type: _type,
             _value: abi.encode(Encoding.encodeFeeVaultConfig(_recipient, _min, _network))
