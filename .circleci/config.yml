@@ -220,9 +220,8 @@ jobs:
           working_directory: cannon/mipsevm/tests/open_mips_tests
 
   contracts-bedrock-build:
-    docker:
-      - image: <<pipeline.parameters.ci_builder_image>>
-    resource_class: xlarge
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
     parameters:
       skip_pattern:
         description: Glob pattern of tests to skip
@@ -231,16 +230,6 @@ jobs:
     steps:
       - checkout
       - install-contracts-dependencies
-      - restore_cache:
-          name: Restore Go modules cache
-          keys:
-            - gomod-contracts-build-{{ checksum "go.sum" }}
-            - gomod-contracts-build-
-      - restore_cache:
-          name: Restore Go build cache
-          keys:
-            - golang-build-cache-contracts-build-{{ checksum "go.sum" }}
-            - golang-build-cache-contracts-build-
       - run:
           name: Print forge version
           command: forge --version
@@ -258,16 +247,6 @@ jobs:
           name: Generate allocs
           command: |
             make devnet-allocs-tests
-      - save_cache:
-          name: Save Go modules cache
-          key: gomod-contracts-build-{{ checksum "go.sum" }}
-          paths:
-            - "/go/pkg/mod"
-      - save_cache:
-          name: Save Go build cache
-          key: golang-build-cache-contracts-build-{{ checksum "go.sum" }}
-          paths:
-            - "/root/.cache/go-build"
       - persist_to_workspace:
           root: "."
           paths:
@@ -752,23 +731,10 @@ jobs:
             - "/root/.cache/go-build"
 
   go-lint:
-    docker:
-      - image: <<pipeline.parameters.ci_builder_image>>
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
     steps:
       - checkout
-      - restore_cache:
-          name: Restore Go modules cache
-          key: gomod-{{ checksum "go.sum" }}
-      - restore_cache:
-          name: Restore Go build cache
-          keys:
-            - golang-build-cache-lint-{{ checksum "go.sum" }}
-            - golang-build-cache-lint-
-      - restore_cache:
-          name: Restore Go lint cache
-          keys:
-            - golang-lint-cache-{{ checksum "go.sum" }}
-            - golang-lint-cache-
       - run:
           name: run Go linter
           command: |
@@ -776,16 +742,6 @@ jobs:
             golangci-lint run --help | grep concurrency
             make lint-go
           working_directory: .
-      - save_cache:
-          name: Save Go build cache
-          key: golang-build-cache-lint-{{ checksum "go.sum" }}
-          paths:
-            - "/root/.cache/go-build"
-      - save_cache:
-          name: Save Go lint cache
-          key: golang-lint-cache-{{ checksum "go.sum" }}
-          paths:
-            - "/root/.cache/golangci-lint"
 
   go-test-kurtosis:
     parameters:
@@ -800,22 +756,9 @@ jobs:
         description: Test directory
         type: string
         default: "./..."
-    machine:
-      image: <<pipeline.parameters.base_image>> # only used to enable codecov.
-    resource_class: xlarge
+    machine: true
+    resource_class: ethereum-optimism/latitude-2
     steps:
-      - run:
-          name: Install components
-          command: |
-            go version
-            go install gotest.tools/gotestsum@v1.11.0
-      - run:
-          name: Install Kurtosis
-          command: |
-            echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
-            sudo apt update
-            sudo apt install kurtosis-cli=1.3.0
-            kurtosis engine start
       - checkout
       - when:
           condition: <<parameters.uses_artifacts>>
@@ -825,74 +768,73 @@ jobs:
           name: prep results dir
           command: |
             # Make sure the workspace is properly owned
-            sudo chown -R $USER:$USER .
-            mkdir -p /tmp/test-results
-            mkdir -p /tmp/testlogs
+            mkdir -p ./tmp/test-results
+            mkdir -p ./tmp/testlogs
       - run:
           name: run tests
           command: |
             ENABLE_KURTOSIS=true gotestsum \
               --format=testname \
-              --junitfile=/tmp/test-results/<<parameters.module>>.xml \
-              --jsonfile=/tmp/testlogs/log.json \
-              -- -parallel=8 \
+              --junitfile=../tmp/test-results/<<parameters.module>>.xml \
+              --jsonfile=../tmp/testlogs/log.json \
+              -- -parallel=$(nproc) \
               -coverpkg=github.com/ethereum-optimism/optimism/... \
               -coverprofile=coverage.out <<parameters.test_directory>>
           working_directory: <<parameters.module>>
       - store_test_results:
-          path: /tmp/test-results
+          path: ./tmp/test-results
       - store_artifacts:
-          path: /tmp/testlogs
+          path: ./tmp/testlogs
           when: always
 
   go-test:
-    parameters:
-      module:
-        description: Go Module Name
-        type: string
-    docker:
-      - image: <<pipeline.parameters.ci_builder_image>>
-    resource_class: xlarge
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
     steps:
       - checkout
-      - restore_cache:
-          name: Restore Go modules cache
-          key: gomod-{{ checksum "go.sum" }}
-      - restore_cache:
-          name: Restore Go build cache
-          keys:
-            - golang-build-cache-test-<<parameters.module>>-{{ checksum "go.sum" }}
-            - golang-build-cache-test-
-      - run:
-          name: Install components
-          command: |
-            go version
-            go install gotest.tools/gotestsum@v1.11.0
       - run:
           name: prep results dir
-          command: mkdir -p /tmp/test-results && mkdir -p /tmp/testlogs
+          command: mkdir -p ./tmp/test-results && mkdir -p ./tmp/testlogs
       - run:
           name: run tests
           command: |
-            gotestsum --format=testname --junitfile=/tmp/test-results/<<parameters.module>>.xml --jsonfile=/tmp/testlogs/log.json \
-            -- -parallel=8 -coverpkg=github.com/ethereum-optimism/optimism/... -coverprofile=coverage.out ./...
-          working_directory: <<parameters.module>>
-      - save_cache:
-          name: Save Go build cache
-          key: golang-build-cache-test-<<parameters.module>>-{{ checksum "go.sum" }}
-          paths:
-            - "/root/.cache/go-build"
+            test_modules=(
+              op-batcher
+              op-chain-ops
+              op-node
+              op-proposer
+              op-challenger
+              op-dispute-mon
+              op-conductor
+              op-program
+              op-service
+              op-supervisor
+              packages/contracts-bedrock/scripts/checks/semver-natspec
+            )
+            
+            package_str=""
+            for module in "${test_modules[@]}"; do
+              package_str="$package_str ./$module/..."
+            done
+            
+            gotestsum --format=testname \
+              --junitfile="./tmp/test-results/results.xml" \
+              --jsonfile="./tmp/testlogs/log.json" \
+              -- -parallel=$(nproc) \
+              -coverpkg=github.com/ethereum-optimism/optimism/... \
+              -coverprofile=coverage.out $package_str
       - store_test_results:
-          path: /tmp/test-results
+          path: ./tmp/test-results
       - store_artifacts:
-          path: /tmp/testlogs
+          path: ./tmp/testlogs
           when: always
 
   go-e2e-test:
     parameters:
       variant:
+        description: The variant to run the tests with
         type: string
-        default: ''
+        default: ""
       module:
         description: Go Module Name
         type: string
@@ -900,9 +842,9 @@ jobs:
         description: The make target to execute
         type: string
       parallelism:
-        description: Number of parallel test runs
+        description: Number of test jobs to run in parallel
         type: integer
-        default: 6
+        default: 1
       notify:
         description: Whether to notify on failure
         type: boolean
@@ -911,9 +853,12 @@ jobs:
         description: Slack user or group to mention when notifying of failures
         type: string
         default: ""
-    docker:
-      - image: <<pipeline.parameters.ci_builder_image>>
-    resource_class: xlarge
+      resource_class:
+        description: Machine resource class
+        type: string
+        default: ethereum-optimism/latitude-1
+    machine: true
+    resource_class: <<parameters.resource_class>>
     parallelism: <<parameters.parallelism>>
     steps:
       - checkout
@@ -924,29 +869,21 @@ jobs:
             - run:
                 name: Set OP_E2E_ALLOC_TYPE = mt-cannon
                 command: echo 'export OP_E2E_ALLOC_TYPE=mt-cannon' >> $BASH_ENV
-      - check-changed:
-          patterns: op-(.+),cannon,contracts-bedrock
       - run:
           name: prep results dir
-          command: mkdir -p /tmp/test-results
-      - restore_cache:
-          name: Restore Go modules cache
-          key: gomod-{{ checksum "go.sum" }}
-      - restore_cache:
-          name: Restore Go build cache
-          keys:
-            - golang-build-cache-e2e-{{ checksum "go.sum" }}
-            - golang-build-cache-e2e-
+          command: |
+            mkdir -p ./tmp/test-results
+            mkdir -p ./tmp/testlogs
       - attach_workspace:
-          at: /tmp/workspace
+          at: ./tmp/workspace
       - run:
           name: Load devnet-allocs and artifacts
           command: |
             mkdir -p .devnet
-            cp -r /tmp/workspace/.devnet* .
-            cp -r /tmp/workspace/packages/contracts-bedrock/forge-artifacts packages/contracts-bedrock/forge-artifacts
-            cp /tmp/workspace/packages/contracts-bedrock/deploy-config/devnetL1.json packages/contracts-bedrock/deploy-config/devnetL1.json
-            cp -r /tmp/workspace/packages/contracts-bedrock/deployments/devnetL1 packages/contracts-bedrock/deployments/devnetL1
+            cp -r ./tmp/workspace/.devnet* .
+            cp -r ./tmp/workspace/packages/contracts-bedrock/forge-artifacts packages/contracts-bedrock/forge-artifacts
+            cp ./tmp/workspace/packages/contracts-bedrock/deploy-config/devnetL1.json packages/contracts-bedrock/deploy-config/devnetL1.json
+            cp -r ./tmp/workspace/packages/contracts-bedrock/deployments/devnetL1 packages/contracts-bedrock/deployments/devnetL1
       - run:
           name: print go's available MIPS targets
           command: go tool dist list | grep mips
@@ -954,29 +891,21 @@ jobs:
           name: run tests
           no_output_timeout: 20m
           command: |
-            mkdir -p /testlogs
-
             # The below env var gets overridden when running make test-cannon, but we
             # need to explicitly set it here to prevent Cannon from running when we don't
             # want it to.
             export OP_E2E_CANNON_ENABLED="false"
             # Note: We don't use circle CI test splits because we need to split by test name, not by package. There is an additional
             # constraint that gotestsum does not currently (nor likely will) accept files from different pacakges when building.
-            JUNIT_FILE=/tmp/test-results/<<parameters.module>>_<<parameters.target>>.xml JSON_LOG_FILE=/testlogs/test.log make <<parameters.target>>
+            JUNIT_FILE=../tmp/test-results/<<parameters.module>>_<<parameters.target>>.xml \
+              JSON_LOG_FILE=../tmp/testlogs/test.log make <<parameters.target>>
           working_directory: <<parameters.module>>
       - store_artifacts:
-          path: /testlogs
+          path: ./tmp/testlogs
           when: always
       - store_artifacts:
-          path: /tmp/test-results
+          path: ./tmp/test-results
           when: always
-      - store_test_results:
-          path: /tmp/test-results
-      - save_cache:
-          name: Save Go build cache
-          key: golang-build-cache-e2e-{{ checksum "go.sum" }}
-          paths:
-            - "/root/.cache/go-build"
       - when:
           condition: "<<parameters.notify>>"
           steps:
@@ -1373,9 +1302,7 @@ workflows:
           requires:
             - contracts-bedrock-build
       - semgrep-scan
-      - go-lint:
-          requires:
-            - go-mod-download
+      - go-lint
       - fuzz-golang:
           name: fuzz-golang-<<matrix.package_name>>
           requires:
@@ -1401,25 +1328,7 @@ workflows:
           uses_artifacts: true
           requires: ["go-mod-download", "contracts-bedrock-build"]
       - go-test:
-          name: <<matrix.module>>-tests
-          requires:
-            - go-mod-download
-          matrix:
-            parameters:
-              module:
-                - op-batcher
-                - op-chain-ops
-                - op-node
-                - op-proposer
-                - op-challenger
-                - op-dispute-mon
-                - op-conductor
-                - op-program
-                - op-service
-                - op-supervisor
-      - go-test:
-          name: semver-natspec-tests
-          module: packages/contracts-bedrock/scripts/checks/semver-natspec
+          name: go-tests
       - go-test-kurtosis:
           name: op-chain-ops-integration
           module: op-chain-ops
@@ -1430,50 +1339,39 @@ workflows:
           name: op-e2e-HTTP-tests
           module: op-e2e
           target: test-http
-          parallelism: 8
+          resource_class: ethereum-optimism/latitude-1
+          parallelism: 4
           requires:
-            - go-mod-download
             - contracts-bedrock-build
       - go-e2e-test:
           name: op-e2e-action-tests
           module: op-e2e
           target: test-actions
-          parallelism: 1
+          resource_class: ethereum-optimism/latitude-2
           requires:
-            - go-mod-download
             - contracts-bedrock-build
       - go-e2e-test:
           name: op-e2e-fault-proof-tests
           module: op-e2e
           target: test-fault-proofs
-          parallelism: 4
+          resource_class: ethereum-optimism/latitude-2
+          parallelism: 2
           requires:
             - contracts-bedrock-build
             - cannon-prestate
-      - op-program-compat:
-          requires:
-            - op-program-tests
+      - op-program-compat
       - bedrock-go-tests:
           requires:
             - go-mod-download
             - go-lint
+            - go-tests
             - cannon-build-test-vectors
             - cannon-go-lint-and-test
             - check-generated-mocks-op-node
             - check-generated-mocks-op-service
             - go-mod-download
-            - op-batcher-tests
-            - op-chain-ops-tests
             - op-chain-ops-integration
-            - op-node-tests
-            - op-proposer-tests
-            - op-challenger-tests
-            - op-dispute-mon-tests
-            - op-conductor-tests
-            - op-program-tests
             - op-program-compat
-            - op-service-tests
-            - op-supervisor-tests
             - op-e2e-HTTP-tests
             - op-e2e-fault-proof-tests
             - op-e2e-action-tests
@@ -1673,7 +1571,6 @@ workflows:
               variant: ["", "-mt-cannon"]
           module: op-e2e
           target: test-cannon
-          parallelism: 4
           notify: true
           mentions: "@proofs-squad"
           requires:

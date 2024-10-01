@@ -27,12 +27,20 @@ import (
 // Will verify that the transaction is included with the expected status on L1 and L2
 // Returns the receipt of the L2 transaction
 func SendDepositTx(t *testing.T, cfg e2esys.SystemConfig, l1Client *ethclient.Client, l2Client *ethclient.Client, l1Opts *bind.TransactOpts, applyL2Opts DepositTxOptsFn) *types.Receipt {
+	l2Receipt, err := SendDepositTxErr(t, cfg, l1Client, l2Client, l1Opts, applyL2Opts)
+	require.NoError(t, err, "Sending deposit tx")
+	return l2Receipt
+}
+
+func SendDepositTxErr(t *testing.T, cfg e2esys.SystemConfig, l1Client *ethclient.Client, l2Client *ethclient.Client, l1Opts *bind.TransactOpts, applyL2Opts DepositTxOptsFn) (*types.Receipt, error) {
 	l2Opts := defaultDepositTxOpts(l1Opts)
 	applyL2Opts(l2Opts)
 
 	// Find deposit contract
 	depositContract, err := bindings.NewOptimismPortal(cfg.L1Deployments.OptimismPortalProxy, l1Client)
-	require.NoError(t, err)
+	if err != nil {
+		return nil, err
+	}
 
 	// Finally send TX
 	// Add 10% padding for the L1 gas limit because the estimation process can be affected by the 1559 style cost scale
@@ -40,24 +48,32 @@ func SendDepositTx(t *testing.T, cfg e2esys.SystemConfig, l1Client *ethclient.Cl
 	tx, err := transactions.PadGasEstimate(l1Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
 		return depositContract.DepositTransaction(opts, l2Opts.ToAddr, l2Opts.Value, l2Opts.GasLimit, l2Opts.IsCreation, l2Opts.Data)
 	})
-	require.NoError(t, err, "with deposit tx")
+	if err != nil {
+		return nil, err
+	}
 	t.Logf("SendDepositTx: transaction sent: %v", tx.Hash())
 
 	// Wait for transaction on L1
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	l1Receipt, err := wait.ForReceiptOK(ctx, l1Client, tx.Hash())
-	require.NoError(t, err, "Waiting for deposit tx on L1")
+	if err != nil {
+		return nil, err
+	}
 	t.Logf("SendDepositTx: included on L1")
 
 	// Wait for transaction to be included on L2
 	reconstructedDep, err := derive.UnmarshalDepositLogEvent(l1Receipt.Logs[0])
-	require.NoError(t, err, "Could not reconstruct L2 Deposit")
+	if err != nil {
+		return nil, err
+	}
 	tx = types.NewTx(reconstructedDep)
 	l2Receipt, err := wait.ForReceipt(ctx, l2Client, tx.Hash(), l2Opts.ExpectedStatus)
-	require.NoError(t, err, "Waiting for deposit tx on L2")
+	if err != nil {
+		return nil, err
+	}
 	t.Logf("SendDepositTx: arrived on L2")
-	return l2Receipt
+	return l2Receipt, nil
 }
 
 type DepositTxOptsFn func(l2Opts *DepositTxOpts)

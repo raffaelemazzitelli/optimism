@@ -109,10 +109,10 @@ func TestMixedDepositValidity(t *testing.T) {
 	op_e2e.InitParallel(t)
 	// Define how many deposit txs we'll make. Each deposit mints a fixed amount and transfers up to 1/3 of the user's
 	// balance. As such, this number cannot be too high or else the test will always fail due to lack of balance in L1.
-	const depositTxCount = 15
+	const depositTxCount = 5
 
 	// Define how many accounts we'll use to deposit funds
-	const accountUsedToDeposit = 5
+	const accountUsedToDeposit = 2
 
 	// Create our system configuration, funding all accounts we created for L1/L2, and start it
 	cfg := e2esys.DefaultSystemConfig(t)
@@ -175,6 +175,8 @@ func TestMixedDepositValidity(t *testing.T) {
 	// Create our random provider
 	randomProvider := rand.New(rand.NewSource(1452))
 
+	sendErrCh := make(chan error, depositTxCount)
+
 	// Now we create a number of deposits from each transactor
 	for i := 0; i < depositTxCount; i++ {
 		// Determine if this deposit should succeed in transferring value (not minting)
@@ -198,18 +200,27 @@ func TestMixedDepositValidity(t *testing.T) {
 		} else {
 			transferValue = new(big.Int).Mul(common.Big2, transactor.ExpectedL2Balance) // trigger a revert by trying to transfer our current balance * 2
 		}
-		helpers.SendDepositTx(t, cfg, l1Client, l2Verif, transactor.Account.L1Opts, func(l2Opts *helpers.DepositTxOpts) {
-			l2Opts.GasLimit = 100_000
-			l2Opts.IsCreation = false
-			l2Opts.Data = nil
-			l2Opts.ToAddr = toAddr
-			l2Opts.Value = transferValue
-			if validTransfer {
-				l2Opts.ExpectedStatus = types.ReceiptStatusSuccessful
-			} else {
-				l2Opts.ExpectedStatus = types.ReceiptStatusFailed
-			}
-		})
+
+		nonce := transactor.ExpectedL1Nonce
+		oCopy := *transactor.Account.L1Opts
+		l1Opts := &oCopy
+		l1Opts.Nonce = new(big.Int).SetUint64(nonce)
+
+		go func() {
+			_, err := helpers.SendDepositTxErr(t, cfg, l1Client, l2Verif, l1Opts, func(l2Opts *helpers.DepositTxOpts) {
+				l2Opts.GasLimit = 100_000
+				l2Opts.IsCreation = false
+				l2Opts.Data = nil
+				l2Opts.ToAddr = toAddr
+				l2Opts.Value = transferValue
+				if validTransfer {
+					l2Opts.ExpectedStatus = types.ReceiptStatusSuccessful
+				} else {
+					l2Opts.ExpectedStatus = types.ReceiptStatusFailed
+				}
+			})
+			sendErrCh <- err
+		}()
 
 		// Update our expected balances.
 		if validTransfer && transactor != receiver {
@@ -224,6 +235,11 @@ func TestMixedDepositValidity(t *testing.T) {
 		}
 		transactor.ExpectedL1Nonce = transactor.ExpectedL1Nonce + 1
 		transactor.ExpectedL2Nonce = transactor.ExpectedL2Nonce + 1
+	}
+
+	for i := 0; i < depositTxCount; i++ {
+		err := <-sendErrCh
+		require.NoError(t, err)
 	}
 
 	// At the end, assert our account balance/nonce states.

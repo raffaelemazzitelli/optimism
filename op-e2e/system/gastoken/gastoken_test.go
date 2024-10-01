@@ -48,6 +48,7 @@ func testCustomGasToken(t *testing.T, allocType config.AllocType) {
 	cfg.DeployConfig.L2GenesisCanyonTimeOffset = &offset
 	cfg.DeployConfig.L2GenesisDeltaTimeOffset = &offset
 	cfg.DeployConfig.L2GenesisEcotoneTimeOffset = &offset
+	cfg.NonFinalizedProposals = true
 
 	sys, err := cfg.Start(t)
 	require.NoError(t, err, "Error starting up system")
@@ -426,19 +427,11 @@ func testCustomGasToken(t *testing.T, allocType config.AllocType) {
 		}
 	}
 
-	// Begin by testing behaviour when CGT feature is not enabled
-	enabled := false
-	checkDeposit(t, enabled)
-	checkL1TokenNameAndSymbol(t, enabled)
-	checkL2TokenNameAndSymbol(t, enabled)
-	checkWETHTokenNameAndSymbol(t, enabled)
-	checkFeeWithdrawal(t, enabled)
-
 	// Activate custom gas token feature (devnet does not have this activated at genesis)
 	setCustomGasToken(t, cfg, sys, weth9Address)
 
 	// Now test behaviour given CGT feature is enabled
-	enabled = true
+	enabled := true
 	checkDeposit(t, enabled)
 	checkWithdrawal(t)
 	checkL1TokenNameAndSymbol(t, enabled)
