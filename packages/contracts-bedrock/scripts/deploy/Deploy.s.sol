@@ -166,7 +166,8 @@ contract Deploy is Deployer {
             SystemConfig: getAddress("SystemConfigProxy"),
             L1ERC721Bridge: getAddress("L1ERC721BridgeProxy"),
             ProtocolVersions: getAddress("ProtocolVersionsProxy"),
-            SuperchainConfig: getAddress("SuperchainConfigProxy")
+            SuperchainConfig: getAddress("SuperchainConfigProxy"),
+            OPContractsManager: getAddress("OPContractsManagerProxy")
         });
     }
 
@@ -186,7 +187,8 @@ contract Deploy is Deployer {
             SystemConfig: getAddress("SystemConfig"),
             L1ERC721Bridge: getAddress("L1ERC721Bridge"),
             ProtocolVersions: getAddress("ProtocolVersions"),
-            SuperchainConfig: getAddress("SuperchainConfig")
+            SuperchainConfig: getAddress("SuperchainConfig"),
+            OPContractsManager: getAddress("OPContractsManager")
         });
     }
 
@@ -391,6 +393,8 @@ contract Deploy is Deployer {
         save("DelayedWETH", address(dio.delayedWETHImpl()));
         save("PreimageOracle", address(dio.preimageOracleSingleton()));
         save("Mips", address(dio.mipsSingleton()));
+        save("OPContractsManagerProxy", address(dio.opcmProxy()));
+        save("OPContractsManager", address(dio.opcmImpl()));
 
         Types.ContractSet memory contracts = _impls();
         ChainAssertions.checkL1CrossDomainMessenger({ _contracts: contracts, _vm: vm, _isProxy: false });
