@@ -1,7 +1,7 @@
 issues:
   ./ops/scripts/todo-checker.sh
 
-# Runs semgrep on the entire monorepo.
+# Runs semgrep on the entire monorepo
 semgrep:
   semgrep scan --config .semgrep/rules/ --error .
 
